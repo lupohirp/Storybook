@@ -4,6 +4,9 @@ package com.paki.storybook;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.Activity;
+import android.app.ListActivity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -11,12 +14,13 @@ import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
-public class StorybookActivity extends StoryBookStaticImport {
+public class StorybookActivity extends ListActivity {
 	
 	
 	Cursor cursor;
 	List<String> ls = new ArrayList<String>();
 	public static SQLiteDatabase db = StorybookContentProvider.myOpenHelper.getWritableDatabase();
+	public static int flag = 0;
 	
 	public void onCreate(Bundle savedInstanceState) {
 	    super.onCreate(savedInstanceState);
@@ -25,7 +29,8 @@ public class StorybookActivity extends StoryBookStaticImport {
 	    setContentView(R.layout.main);
 	    
 	    cursor = db.rawQuery("SELECT " + StorybookContentProvider.CONTACT + 
-	    					 " FROM " + StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE ,
+	    					 " FROM " + StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE + 
+	    					 " GROUP BY "  + StorybookContentProvider.CONTACT,
 	    					 null);
 	    
 
@@ -42,9 +47,12 @@ public class StorybookActivity extends StoryBookStaticImport {
 	   
 	    setListAdapter(aa);
 	    
-	    
-	    getCalls();
-	    getSms();
+	   
+	   
+	    if(flag==0){
+	    Intent startActivityIntent = new Intent(this,StoryBookStaticImport.class);
+	    startActivity(startActivityIntent);
+	    }
 	}
 	
 

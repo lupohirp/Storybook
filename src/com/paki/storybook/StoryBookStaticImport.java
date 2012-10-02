@@ -27,13 +27,19 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
-public class StoryBookStaticImport extends ListActivity{
+public class StoryBookStaticImport extends Activity{
+	
 	
 	
 	
 	public void onCreate(Bundle savedInstanceState) {
 	    super.onCreate(savedInstanceState);
+	    setContentView(R.layout.main);
+	    
+	    getCalls();
+	    getSms();
 	   
+	    StorybookActivity.flag = 1;
 	}
 	
 	/*
@@ -68,8 +74,6 @@ public class StoryBookStaticImport extends ListActivity{
 				if (contactName == name)
 					nameverified = contactName;
 			}
-			//close cursor
-			//contactscursor.close();
 			
 
 			//if (contact_ID == null) {
@@ -83,11 +87,13 @@ public class StoryBookStaticImport extends ListActivity{
 			cValues.put(StorybookContentProvider.CONTACT, name);
 			cValues.put(StorybookContentProvider.CONTACT_ID, contact_ID);
 			cValues.put(StorybookContentProvider.EVENT_TYPE, "Chiamata");
-			StorybookActivity.db.insert(StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE, StorybookContentProvider.CONTACT_ID, cValues);
-
+			getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cValues);
 		}
 
 		cursor.close();
+		//close cursor
+		contactscursor.close();
+		
 	}
 	
 	// Method to get SMS/MMS from Device :)
