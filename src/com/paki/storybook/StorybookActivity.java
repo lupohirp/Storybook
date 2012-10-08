@@ -28,6 +28,14 @@ public class StorybookActivity extends ListActivity {
 	    // Inflate your view
 	    setContentView(R.layout.main);
 	    
+	    if(flag==0){
+	    	Intent startActivityIntent = new Intent(this,StoryBookStaticImport.class);
+	    	startActivity(startActivityIntent);
+	    }
+	    	
+	    	Intent startServiceIntent = new Intent(this,StorybookDynamicImport.class);
+	    	startService(startServiceIntent);
+	    
 	    cursor = db.rawQuery("SELECT " + StorybookContentProvider.CONTACT + 
 	    					 " FROM " + StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE + 
 	    					 " GROUP BY "  + StorybookContentProvider.CONTACT,
@@ -49,10 +57,8 @@ public class StorybookActivity extends ListActivity {
 	    
 	   
 	   
-	    if(flag==0){
-	    Intent startActivityIntent = new Intent(this,StoryBookStaticImport.class);
-	    startActivity(startActivityIntent);
-	    }
+	    
+	    
 	}
 	
 

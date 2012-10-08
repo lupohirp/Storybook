@@ -8,6 +8,7 @@
         android:targetSdkVersion="15" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/> 
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -21,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-			<activity android:name=".StorybookStaticImport">
+			<activity android:name=".StoryBookStaticImport">
 			<intent-filter>
 				<action android:name="android.intent.action.GET_CONTENT" />
 			</intent-filter>
@@ -29,6 +30,9 @@
           <provider
             android:name=".StorybookContentProvider"
             android:authorities="com.paki.storybook" />
+          <service 
+             android:enabled="true"
+             android:name=".StorybookDynamicImport"></service>
     </application>
 
 </manifest>
