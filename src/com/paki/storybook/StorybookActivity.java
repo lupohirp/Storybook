@@ -5,18 +5,23 @@ import java.util.List;
 
 import android.app.Activity;
 import android.app.ListActivity;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
-public class StorybookActivity extends ListActivity {
+public class StorybookActivity extends Activity {
 
 	Cursor cursor;
-	List<String> ls = new ArrayList<String>();
+	List<String> ls;
+	ListView ls1;
+
 	public static SQLiteDatabase db = StorybookContentProvider.myOpenHelper
 			.getWritableDatabase();
 	public static int flag = 0;
@@ -27,19 +32,24 @@ public class StorybookActivity extends ListActivity {
 		// Inflate your view
 		setContentView(R.layout.main);
 
+
+		ls = new ArrayList<String>();
+		ls1 = (ListView) findViewById(R.id.listView1);
+		
+		
 		if (flag == 0) {
 			Intent startActivityIntent = new Intent(this,
 					StoryBookStaticImport.class);
 			startActivity(startActivityIntent);
 		}
-
+		
 		Intent startServiceIntent = new Intent(this,
 				StorybookDynamicImport.class);
 		startService(startServiceIntent);
 
 		cursor = db.rawQuery("SELECT " + StorybookContentProvider.CONTACT
 				+ " FROM "
-				+ StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE
+				+ StorybookContentProvider.MySQLiteOpenHelper.DATABASE_TABLE_CONTACT
 				+ " GROUP BY " + StorybookContentProvider.CONTACT, null);
 
 		int nameIdx = cursor.getColumnIndex(StorybookContentProvider.CONTACT);
@@ -50,11 +60,10 @@ public class StorybookActivity extends ListActivity {
 			ls.add(name);
 		}
 
-		ArrayAdapter<String> aa = new ArrayAdapter<String>(this,
-				android.R.layout.simple_list_item_1, ls);
-
-		setListAdapter(aa);
-
+	
+		ArrayAdapter<String> aa = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, ls);
+		ls1.setAdapter(aa);
+		
 	}
 
 }

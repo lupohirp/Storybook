@@ -78,7 +78,6 @@ public class StoryBookStaticImport extends Activity {
 					"sto salvando dalle chiamate:" + name);
 			ContentValues cValues = new ContentValues();
 			cValues.put(StorybookContentProvider.CONTACT, name);
-			cValues.put(StorybookContentProvider.CONTACT_ID, contact_ID);
 			cValues.put(StorybookContentProvider.EVENT_TYPE, "Chiamata");
 			getContentResolver().insert(StorybookContentProvider.CONTENT_URI,
 					cValues);
@@ -132,8 +131,8 @@ public class StoryBookStaticImport extends Activity {
 
 			ContentValues cValues = new ContentValues();
 			cValues.put(StorybookContentProvider.CONTACT, returned_name);
-			cValues.put(StorybookContentProvider.CONTACT_ID, contact_ID);
-			cValues.put(StorybookContentProvider.EVENT_TYPE, "SMS/MMS");
+		//	cValues.put(StorybookContentProvider.CONTACT_ID, contact_ID);
+		//	cValues.put(StorybookContentProvider.EVENT_TYPE, "SMS/MMS");
 			getContentResolver().insert(StorybookContentProvider.CONTENT_URI,
 					cValues);
 
