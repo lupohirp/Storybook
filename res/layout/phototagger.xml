@@ -56,7 +56,7 @@
             android:id="@+id/textView2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Inserisci la data (in formato gg//mm//aa)" />
+            android:text="Inserisci la data (in formato gg/mm/aa)" />
             
          <EditText
             android:id="@+id/editText2"

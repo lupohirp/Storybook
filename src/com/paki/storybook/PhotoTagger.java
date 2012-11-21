@@ -10,6 +10,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.Layout;
@@ -18,6 +19,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnFocusChangeListener;
 import android.view.View.OnKeyListener;
 import android.widget.LinearLayout;
 import android.widget.TableRow.LayoutParams;
@@ -64,73 +66,56 @@ public class PhotoTagger extends Activity {
 	    final Cursor cursor = managedQuery(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
 	                    projection, null, null, MediaStore.Images.Media.DATE_TAKEN + " DESC");
 	    
+	    final Uri uri;
 	    if (cursor.moveToFirst()) {
 	        
-	        String imageLocation = cursor.getString(1);
+	        final String imageLocation = cursor.getString(1);
 	        Log.v(StorybookContentProvider.TAG_LOG,"Image located at: " + imageLocation);
 	        File imageFile = new File(imageLocation);
 	        if (imageFile.exists()) {   // TODO: is there a better way to do this?
 	        	Log.v(StorybookContentProvider.TAG_LOG, "l'immagine esiste");
-	            Bitmap bm = BitmapFactory.decodeFile(imageLocation);
+	            final Bitmap bm = BitmapFactory.decodeFile(imageLocation);
+	            uri = Uri.fromFile(imageFile);
 	            imageView.setImageBitmap(bm);
 	            //setContentView(imageView);
 	            
 	            final EditText ed = (EditText) findViewById(R.id.editText1);
 	            ed.setText(null);
-	            ed.setOnKeyListener(new OnKeyListener() {
+	            ed.setOnFocusChangeListener(new OnFocusChangeListener() {
 					
-					public boolean onKey(View v, int keyCode, KeyEvent event) {
+					public void onFocusChange(View v, boolean hasFocus) {
 						// TODO Auto-generated method stub
+
+						 person = ed.getText().toString();
 						
-						if (event.getAction() == KeyEvent.ACTION_DOWN){
-							switch(keyCode)
-							{
-							
-							case KeyEvent.KEYCODE_ENTER:
-								 person = ed.getText().toString();
-								return true;
-							}
-						}
-						return false;
 					}
 				});
 	            
 	            final EditText ed2 = (EditText) findViewById(R.id.editText2);
 	            ed2.setText(null);
-	            ed2.setOnKeyListener(new OnKeyListener() {
+	            ed2.setOnFocusChangeListener(new OnFocusChangeListener() {
 					
-					public boolean onKey(View v, int keyCode, KeyEvent event) {
+					public void onFocusChange(View v, boolean hasFocus) {
 						// TODO Auto-generated method stub
-						if (event.getAction() == KeyEvent.ACTION_DOWN){
-							switch(keyCode)
-							{
-							case KeyEvent.KEYCODE_ENTER:
-								 currentDate= ed2.getText().toString();
-								return true;
-							}
-						}
+						currentDate= ed2.getText().toString();
+						Log.v(StorybookContentProvider.TAG_LOG, currentDate);
 						
-						return false;
 					}
 				});
 	            
+	           
+	            
 	            final EditText ed3 = (EditText) findViewById(R.id.editText3);
 	            ed3.setText(null);
-	            ed3.setOnKeyListener(new OnKeyListener() {
+	            ed3.setOnFocusChangeListener(new OnFocusChangeListener() {
 					
-					public boolean onKey(View v, int keyCode, KeyEvent event) {
+					public void onFocusChange(View v, boolean hasFocus) {
 						// TODO Auto-generated method stub
-						if (event.getAction() == KeyEvent.ACTION_DOWN){
-							switch(keyCode)
-							{
-							case KeyEvent.KEYCODE_ENTER:
-								 Loc= ed3.getText().toString();
-								return true;
-							}
-						}
-						return false;
+						Loc= ed3.getText().toString();
 					}
 				});
+	            
+	            
 	            
 	            Button bt = (Button) findViewById(R.id.button1);
 	            final EditText tv2 = new EditText(this);
@@ -145,23 +130,17 @@ public class PhotoTagger extends Activity {
 						othText.setText("Iserisci un'altra persona");
 						tv2.setLayoutParams(new LayoutParams(LayoutParams.FILL_PARENT,
 	                            LayoutParams.WRAP_CONTENT, 1));
-						tv2.setText("Inserisci qui un'altra persona!");
+						tv2.setText(null);
 						tl.addView(othText);
 						tl.addView(tv2);
 						
-						tv2.setOnKeyListener(new OnKeyListener() {
+						tv2.setOnFocusChangeListener(new OnFocusChangeListener() {
 							
-							public boolean onKey(View v, int keyCode, KeyEvent event) {
+							public void onFocusChange(View v, boolean hasFocus) {
 								// TODO Auto-generated method stub
-								if (event.getAction() == KeyEvent.ACTION_DOWN){
-									switch(keyCode)
-									{
-									case KeyEvent.KEYCODE_ENTER:
-										 OtherPers= tv2.getText().toString();
-										return true;
-									}
-								}
-								return false;
+
+								 OtherPers= tv2.getText().toString();
+								 Log.v(StorybookContentProvider.TAG_LOG, OtherPers);
 							}
 						});
 						
@@ -172,13 +151,14 @@ public class PhotoTagger extends Activity {
 	            
 	            
 	            Button bt2 = (Button)findViewById(R.id.button2);
+	           
 	            bt2.setOnClickListener(new OnClickListener() {
 					
 					public void onClick(View v) {
 						// TODO Auto-generated method stub
-						boolean ver = SaveIntoDataBase(person, currentDate, Loc);
-						if (tv2.isShown())
-								ver = SaveIntoDataBase(OtherPers, currentDate, Loc); 
+						boolean ver = SaveIntoDataBase(person, currentDate, Loc, uri);
+						if(tv2.isShown())
+								ver = SaveIntoDataBase(OtherPers, currentDate, Loc, uri);
 						if(ver)
 							finish();
 					}
@@ -191,7 +171,7 @@ public class PhotoTagger extends Activity {
 	
 	
 	
-	private boolean SaveIntoDataBase(String name,String date,String location){
+	private boolean SaveIntoDataBase(String name,String date,String location, Uri uri){
 		
 		ContentValues cv = new ContentValues();
 		
@@ -208,9 +188,10 @@ public class PhotoTagger extends Activity {
 		Log.v(StorybookContentProvider.TAG_LOG, "salvando" + name );  
 		cv.put(StorybookContentProvider.DATE, date);
 		Log.v(StorybookContentProvider.TAG_LOG, "salvando" + date );
-		cv.put(StorybookContentProvider.EVENT_TYPE, "Photo");
+		cv.put(StorybookContentProvider.EVENT_TYPE, "Foto");
 		Log.v(StorybookContentProvider.TAG_LOG, "salvando" + location );
 		cv.put(StorybookContentProvider.LOCATION, location);
+		cv.put(StorybookContentProvider.URI, uri.toString());
 		
 		getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
 			

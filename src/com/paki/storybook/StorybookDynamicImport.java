@@ -38,7 +38,9 @@ import android.os.FileObserver;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.CallLog;
 import android.provider.ContactsContract;
+import android.provider.ContactsContract.PhoneLookup;
 import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
@@ -98,13 +100,18 @@ public class StorybookDynamicImport extends Service {
 
 		}
 	};
+	
+	
+	public StorybookDynamicImport(){
+		
+	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
 	 * @see android.app.Service#onCreate()
 	 */
-
+	
 	public void onCreate() {
 		super.onCreate();
 		String svcName = Context.NOTIFICATION_SERVICE;
@@ -125,12 +132,12 @@ public class StorybookDynamicImport extends Service {
 		criteria.setVerticalAccuracy(Criteria.ACCURACY_HIGH);
 
 		// Getting the best-available provider
-		provider = LocationManager.getBestProvider(criteria, true);
+		provider = LocationManager.GPS_PROVIDER;
+	    if (!LocationManager.isProviderEnabled(provider)) 
+		        provider = LocationManager.NETWORK_PROVIDER; 
 
 		// Call to method to capture outgoing calls
-		monitorOutgoingCalls();
-		// Call to method to capture incoming calls
-		CaptureCall();
+		TrackCalls();
 		// Call to method to capture incoming and outcoming sms
 		TrackSms();
 		// Call to camera listener
@@ -142,129 +149,28 @@ public class StorybookDynamicImport extends Service {
 		}
 	}
 
-	/*
-	 * Method to Capture incoming calls
-	 */
-
-	public void CaptureCall() {
-		
-		
-		
-		// Declare a telephony manager
-		TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-		// Declare a phoneStateListener
-		PhoneStateListener mPhoneListener;
-		// Switching trough various cases
-		mPhoneListener = new PhoneStateListener() {
-			public void onCallStateChanged(int state, String incomingNumber) {
-				String phonenumber=null;
-				String currentDate;
-				String Loc;
-				ContentValues cv = new ContentValues();
-				try {
-					switch (state) {
-					case TelephonyManager.CALL_STATE_RINGING:
-						Log.v(StorybookContentProvider.TAG_LOG,
-								"sei in chiamata");
 	
-						phonenumber= findNameByAddress(StorybookDynamicImport.this, incomingNumber);
-						currentDate = formatDate(System.currentTimeMillis());
-	
-						// Sending a statusbar Notification
-						CallNotification = notificationBuilder("StoryBook",
-								"Ho salvato l'evento chiamata!", null);
-						NotificationManager.notify(1, CallNotification);
-
-						// Getting the position
-						LocationManager.requestSingleUpdate(criteria,
-								locationListener, looper);
-						Location location = LocationManager
-								.getLastKnownLocation(provider);
-						Loc=GetAddressLocation(location);
-						
-						cv.put(StorybookContentProvider.CONTACT, phonenumber);
-						Log.v(StorybookContentProvider.TAG_LOG, "Salvando" + phonenumber);
-						cv.put(StorybookContentProvider.DATE, currentDate);
-						Log.v(StorybookContentProvider.TAG_LOG, "Data" + currentDate);
-						cv.put(StorybookContentProvider.EVENT_TYPE, "Chiamata");
-						cv.put(StorybookContentProvider.LOCATION, Loc);
-						Log.v(StorybookContentProvider.TAG_LOG, "DOVE" + Loc);
-						getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
-						
-					
-
-						break;
-					}
-				} catch (Exception e) {
-					// TODO: handle exception
-				}
-			}
-		};
-
-		// Setting listener
-		tm.listen(mPhoneListener, PhoneStateListener.LISTEN_CALL_STATE);
-	}
 
 	/*
 	 * Method to capture outgoing calls TO-DO: save data in database and get
 	 * position
 	 */
 
-	public void monitorOutgoingCalls() {
+	public void TrackCalls() {
 
-		// get a broadcast receiver
+		CalllogObserver calllogobserver = null;
+		
+		// register a contentObserver
+		
+		if(calllogobserver == null){
+			Uri uri = CallLog.Calls.CONTENT_URI;
+			calllogobserver=new CalllogObserver(new Handler(), StorybookDynamicImport.this);
+			StorybookDynamicImport.this.getContentResolver().registerContentObserver(uri, true, calllogobserver);
+		}
 
-	BroadcastReceiver callRcv = new BroadcastReceiver() {
-			
-			String currentDate;
-			String Loc;
-			String person = null;
-			ContentValues cv = new ContentValues();
-			public void onReceive(Context context, Intent intent) {
-				String action = intent.getAction();
-				// Capture the call
-				if (Intent.ACTION_NEW_OUTGOING_CALL.equals(action)) {
-					String number = getResultData();
-					setResultData(null);
-					Log.v(StorybookContentProvider.TAG_LOG,
-							"Outgoing call logged");
-					Log.v(StorybookContentProvider.TAG_LOG,number);
-					
-					person = findNameByAddress(StorybookDynamicImport.this, number);
-					currentDate = formatDate(System.currentTimeMillis());
-					// Getting the position
-					LocationManager.requestSingleUpdate(criteria,
-							locationListener, looper);
-					Location location = LocationManager
-							.getLastKnownLocation(provider);
-					Loc=GetAddressLocation(location);
-					
-					
-					cv.put(StorybookContentProvider.CONTACT, person);
-					Log.v(StorybookContentProvider.TAG_LOG, "Salvando" + person);
-					cv.put(StorybookContentProvider.DATE, currentDate);
-					Log.v(StorybookContentProvider.TAG_LOG, "Data" + currentDate);
-					cv.put(StorybookContentProvider.EVENT_TYPE, "Chiamata");
-					cv.put(StorybookContentProvider.LOCATION, Loc);
-					Log.v(StorybookContentProvider.TAG_LOG, "DOVE" + Loc);
-					getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
-					
-					
-					// Sending a statusbar Notification
-					CallNotification = notificationBuilder("StoryBook",
-							"Ho salvato l'evento chiamata!", null);
-					NotificationManager.notify(1, CallNotification);
 
-				}
-
-			}
-
-		};
-
-		// Setting Listener
-		registerReceiver(callRcv, new IntentFilter(
-				Intent.ACTION_NEW_OUTGOING_CALL));
-
+		
+	
 	}
 
 	/*
@@ -329,6 +235,7 @@ public class StorybookDynamicImport extends Service {
 	
 		if(cls != null){
 			notificationIntent = new Intent(this, cls);
+			notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 		}
 		
@@ -361,7 +268,7 @@ public class StorybookDynamicImport extends Service {
 	 * Private method to get location
 	 */
 
-	protected String GetAddressLocation(Location location) {
+	public String GetAddressLocation(Location location) {
 		//String addressstring = "No address found";
 		String address = null;
 
@@ -382,14 +289,8 @@ public class StorybookDynamicImport extends Service {
 				StringBuilder sb = new StringBuilder();
 				if (addresses.size() > 0) {
 					address = addresses.get(0).getLocality();
-
-					//for (int i = 0; i < address.getMaxAddressLineIndex(); i++)
-						//sb.append(address.getAddressLine(i)).append("\n");
-
-					//sb.append(address.getLocality()).append("\n");
 				}
-				//addressstring = sb.toString();
-				//addressstring.
+				
 			} catch (Exception e) {
 				// TODO: handle exception
 			}
@@ -400,17 +301,22 @@ public class StorybookDynamicImport extends Service {
 		return address;
 	}
 	
-	
+	/*
+	 * Private method for format a date starting from a long type
+	 */
 	
 	protected String formatDate(long date) {
 
 		Date realdate = new Date(date);
 		DateFormat df = new DateFormat();
 		String format = (String) df.format("dd/MM/yyyy", realdate);
-		//Log.v(StorybookContentProvider.TAG_LOG, "data della chiamata" + format);
 
 		return format;
 	}
+	
+	/*
+	 * Private method to get Names from person (lookup in ContactsContract)
+	 */
 	
 	protected String findNameByAddress(Context ct, String addr) {
 		Uri myPerson = Uri.withAppendedPath(
@@ -435,11 +341,105 @@ public class StorybookDynamicImport extends Service {
 
 		return addr;
 	}
+	
+	
+	/**
+	 * 
+	 * @author Paki
+	 * NESTED CLASS FOR CALL OBSERVER 
+	 */
+	
+	public class CalllogObserver extends ContentObserver{
+		
+		// Get context
+		private Context mContext;
 
-	/*
-	 * NESTED CLASS TO CAPTURE SENDING AND RECEIVING SMS
+		public CalllogObserver(Handler handler, Context ctx) {
+			super(handler);
+			mContext = ctx;
+		}
+
+		public boolean deliverSelfNotifications() {
+			return true;
+		}
+		
+		long lastTimeofCall = 0L;
+		long lastTimeofUpdate = 0L;
+		long threshold_time = 10000;
+		ContentValues cv = new ContentValues();
+		
+		public void onChange(boolean selfChange) {
+			
+			super.onChange(selfChange);
+
+		        lastTimeofCall = System.currentTimeMillis();
+
+		        if(lastTimeofCall - lastTimeofUpdate > threshold_time){
+
+		         //write your code to find updated contacts here
+		        	Cursor c1 = getContentResolver().query(CallLog.Calls.CONTENT_URI,null,null,null,null); 
+		        	  if(c1.moveToLast()){
+		        		// get the name
+		        		String name = c1.getString(c1.getColumnIndex(CallLog.Calls.CACHED_NAME));
+		        		//get the date
+		        		String currentDate =formatDate(Long.parseLong(c1.getString(c1.getColumnIndex(CallLog.Calls.DATE))));
+		        		// find the final event of call
+		        		String type = null;
+		        		int i =c1.getColumnIndex(CallLog.Calls.TYPE);
+		        		switch(c1.getInt(i)){
+		        				 //if is receiving
+		        				 case android.provider.CallLog.Calls.INCOMING_TYPE:
+		        					 type = "Chiamata ricevuta";
+		        					 break;
+		        			     //if is missed
+		        				 case android.provider.CallLog.Calls.MISSED_TYPE:
+		        					 type = "Chiamata persa";
+		        					 break;
+		        			     //if is doing a call
+		        				 case android.provider.CallLog.Calls.OUTGOING_TYPE:
+		        					 type = "Chiamata effettuata";
+		        					 break;
+		        		}
+		        		
+		        		
+		        		Uri lookupUri = Uri.withAppendedPath(CallLog.Calls.CONTENT_URI, Uri.encode(c1.getString(c1.getColumnIndex(CallLog.Calls._ID))));
+						Log.e(StorybookContentProvider.TAG_LOG, "URI:" + lookupUri);
+						
+						// Getting the position
+						LocationManager.requestSingleUpdate(criteria,locationListener, looper);
+						Location location = LocationManager.getLastKnownLocation(provider);
+						String Loc=GetAddressLocation(location);
+		        		
+						cv.put(StorybookContentProvider.CONTACT, name);
+						Log.v(StorybookContentProvider.TAG_LOG, "Salvando" + name);
+						cv.put(StorybookContentProvider.DATE, currentDate);
+						Log.v(StorybookContentProvider.TAG_LOG, "Data" + currentDate);
+						cv.put(StorybookContentProvider.EVENT_TYPE, type);
+						cv.put(StorybookContentProvider.LOCATION, Loc);
+						Log.v(StorybookContentProvider.TAG_LOG, "DOVE" + Loc);
+						cv.put(StorybookContentProvider.URI, lookupUri.toString());
+						getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
+		        		
+		        		CallNotification = notificationBuilder("Storybook", "Ho salvato l'evento chiamata", null);
+		        		NotificationManager.notify(1,CallNotification);
+		        		
+		        	         }  
+
+		          lastTimeofUpdate = System.currentTimeMillis();
+		        }
+	}
+			}
+	
+
+
+	/**
+	 * 
+	 * @author Paki
+	 * NESTED CLASS FOR SMS OBSERVER
 	 */
 
+	
+	
 	public class SmsSentReceivedObserver extends ContentObserver {
 
 		// Get context
@@ -469,6 +469,7 @@ public class StorybookDynamicImport extends Service {
 				if (sms_sent_cursor.moveToFirst()) {
 					String protocol = sms_sent_cursor.getString(sms_sent_cursor
 							.getColumnIndex("protocol"));
+					
 					Log.e(StorybookContentProvider.TAG_LOG, "protocol : "
 							+ protocol);
 
@@ -480,23 +481,34 @@ public class StorybookDynamicImport extends Service {
 								.getColumnIndex("type"));
 						Log.e(StorybookContentProvider.TAG_LOG, "SMS Type : "
 								+ type);
-						
-						
 						// if sms is sended 
 						if (type == 2) {
+							
+							//Getting the number
 							
 							String number = sms_sent_cursor.getString(sms_sent_cursor
 									.getColumnIndex("address"));
 							
+							//find person
+							
 							person = findNameByAddress(StorybookDynamicImport.this, number);
+				
+							// Getting the name
 							
 							currentDate = formatDate(System.currentTimeMillis());
+							
 							// Getting the position
 							LocationManager.requestSingleUpdate(criteria,
 									locationListener, looper);
 							Location location = LocationManager
 									.getLastKnownLocation(provider);
 							Loc=GetAddressLocation(location);
+							
+							//Getting the URL for conversation
+							
+							int threadId = sms_sent_cursor.getInt(sms_sent_cursor.getColumnIndex("thread_id"));
+							Uri lookupUri = Uri.withAppendedPath(Uri.parse("content://mms-sms/conversations/"), Integer.toString(threadId));
+					       
 							
 							
 							cv.put(StorybookContentProvider.CONTACT, person);
@@ -505,6 +517,7 @@ public class StorybookDynamicImport extends Service {
 							Log.v(StorybookContentProvider.TAG_LOG, "Data" + currentDate);
 							cv.put(StorybookContentProvider.EVENT_TYPE, "Sms inviato");
 							cv.put(StorybookContentProvider.LOCATION, Loc);
+							cv.put(StorybookContentProvider.URI, lookupUri.toString());
 							Log.v(StorybookContentProvider.TAG_LOG, "DOVE" + Loc);
 							getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
 							
@@ -515,20 +528,28 @@ public class StorybookDynamicImport extends Service {
 							NotificationManager.notify(1, SmsNotification);
 
 						}
-					} else if (Integer.parseInt(protocol) == 0) {
+					} else  {
 						int type = sms_sent_cursor.getInt(sms_sent_cursor
 								.getColumnIndex("type"));
 						Log.e(StorybookContentProvider.TAG_LOG, "SMS Type : "
 								+ type);
 						// if sms is fully received
-						if (type == 1) {
+						if (type == 2) {
+							
+							//get the number
 							
 							String number = sms_sent_cursor.getString(sms_sent_cursor
 									.getColumnIndex("address"));
 							
+							
+							//find person
+							
 							person = findNameByAddress(StorybookDynamicImport.this, number);
 							
+							//find date
+							
 							currentDate = formatDate(System.currentTimeMillis());
+							
 							// Getting the position
 							LocationManager.requestSingleUpdate(criteria,
 									locationListener, looper);
@@ -536,14 +557,19 @@ public class StorybookDynamicImport extends Service {
 									.getLastKnownLocation(provider);
 							Loc=GetAddressLocation(location);
 							
+							// getting the URL for recall from StoryBook app
 							
+							int threadId = sms_sent_cursor.getInt(sms_sent_cursor.getColumnIndex("thread_id"));
+							Uri lookupUri = Uri.withAppendedPath(Uri.parse("content://mms-sms/conversations/"), Integer.toString(threadId));
+					        Log.v(StorybookContentProvider.TAG_LOG, "URI:" + lookupUri ); 
+							
+							//putting into Database
+					        
 							cv.put(StorybookContentProvider.CONTACT, person);
-							Log.v(StorybookContentProvider.TAG_LOG, "Salvando" + person);
 							cv.put(StorybookContentProvider.DATE, currentDate);
-							Log.v(StorybookContentProvider.TAG_LOG, "Data" + currentDate);
-							cv.put(StorybookContentProvider.EVENT_TYPE, "Sms ricevuto!");
+							cv.put(StorybookContentProvider.EVENT_TYPE, "Sms ricevuto");
 							cv.put(StorybookContentProvider.LOCATION, Loc);
-							Log.v(StorybookContentProvider.TAG_LOG, "DOVE" + Loc);
+							cv.put(StorybookContentProvider.TAG_LOG, lookupUri.toString());
 							getContentResolver().insert(StorybookContentProvider.CONTENT_URI, cv);
 							
 							

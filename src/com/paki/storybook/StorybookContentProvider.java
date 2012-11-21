@@ -148,22 +148,7 @@ public class StorybookContentProvider extends ContentProvider {
 	    return cursor;
 	  }
 	  
-	//  /**
-	//   * Listing 8-34: Configuring a searchable resource for search suggestions
-	//   */
-	//
-	//  [NOTE: This searchable definition belongs (and can be found) in 
-//	         res/xml/searchablewithsuggestions.xml]
-	//
-	//  <?xml version="1.0" encoding="utf-8"?>
-	//  <searchable xmlns:android="http://schemas.android.com/apk/res/android"
-//	    android:label="@string/app_name"
-//	    android:searchSuggestAuthority=
-//	      "com.paad.skeletonsearchabledatabaseprovider"
-//	    android:searchSuggestIntentAction="android.intent.action.VIEW"
-//	    android:searchSuggestIntentData=
-//	      "content://com.paad.skeletonsearchabledatabaseprovider/elements">
-	//  </searchable>
+
 
 	  @Override
 	  public int delete(Uri uri, String selection, String[] selectionArgs) {
